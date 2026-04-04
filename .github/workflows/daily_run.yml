@@ -1,0 +1,135 @@
+name: AutoShorts Daily Run
+
+on:
+  schedule:
+    # Run daily at 10:00 AM UTC (adjust to your timezone)
+    - cron: '0 10 * * *'
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  generate-video:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      
+      - name: Install Playwright browsers
+        run: |
+          pip install playwright
+          playwright install chromium
+      
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install "pycaps[all] @ git+https://github.com/francozanardi/pycaps.git"
+      
+      - name: Create .env file
+        working-directory: backend
+        run: |
+          cat > .env << EOF
+          DEBUG=false
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
+          TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
+          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          PEXELS_API_KEY=${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID=${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET=${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          EOF
+      
+      - name: Create directories
+        run: |
+          mkdir -p temp output data
+      
+      - name: Test pipeline modules
+        working-directory: backend
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          
+          print('Testing imports...')
+          from app.services.clip_finder import ClipFinder
+          from app.services.transcriber import Transcriber
+          from app.services.metadata_generator import MetadataGenerator
+          from app.services.renderer import Renderer, PYCAPS_AVAILABLE
+          
+          print(f'✓ ClipFinder OK')
+          print(f'✓ Transcriber OK')
+          print(f'✓ MetadataGenerator OK')
+          print(f'✓ Renderer OK (pycaps: {PYCAPS_AVAILABLE})')
+          print('All modules loaded successfully!')
+          "
+      
+      # ============================================
+      # AUTOMATED VIDEO GENERATION (Optional)
+      # Uncomment below to enable full automation
+      # ============================================
+      # - name: Generate and upload video
+      #   working-directory: backend
+      #   run: |
+      #     python -c "
+      #     import asyncio
+      #     from app.services.clip_finder import ClipFinder
+      #     from app.services.transcriber import Transcriber
+      #     from app.services.metadata_generator import MetadataGenerator
+      #     from app.services.renderer import Renderer
+      #     from app.config import get_settings
+      #     
+      #     async def main():
+      #         settings = get_settings()
+      #         
+      #         # Find best clip
+      #         finder = ClipFinder(settings.twitch_client_id, settings.twitch_client_secret)
+      #         clip = await finder.find_best_clip(mode='auto')
+      #         print(f'Found clip: {clip[\"title\"]}')
+      #         
+      #         # Download
+      #         clip_path = await finder.download_clip(clip['url'])
+      #         
+      #         # Transcribe
+      #         transcriber = Transcriber()
+      #         transcript = transcriber.transcribe(clip_path)
+      #         
+      #         # Generate metadata
+      #         meta_gen = MetadataGenerator(settings.openrouter_api_key)
+      #         metadata = meta_gen.generate(transcript, clip['broadcaster_name'])
+      #         
+      #         # Render
+      #         renderer = Renderer(caption_style='mrbeast')
+      #         output_path = f'output/short_{clip[\"id\"][:8]}.mp4'
+      #         renderer.render(clip_path, transcript, output_path)
+      #         
+      #         print(f'Video ready: {output_path}')
+      #         # Note: Upload requires stored OAuth tokens
+      #     
+      #     asyncio.run(main())
+      #     "
+      
+      - name: Summary
+        run: |
+          echo "## AutoShorts Daily Run Complete! ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All modules tested successfully." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Use the web dashboard for manual video generation" >> $GITHUB_STEP_SUMMARY
+          echo "- Or uncomment the automation section for full auto-upload" >> $GITHUB_STEP_SUMMARY

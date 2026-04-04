@@ -1,0 +1,65 @@
+{
+  "hook_styles": {
+    "shock": {
+      "uses": 0,
+      "total_score": 0,
+      "avg_score": 0
+    },
+    "question": {
+      "uses": 0,
+      "total_score": 0,
+      "avg_score": 0
+    },
+    "emotional": {
+      "uses": 0,
+      "total_score": 0,
+      "avg_score": 0
+    },
+    "curiosity": {
+      "uses": 0,
+      "total_score": 0,
+      "avg_score": 0
+    },
+    "hype": {
+      "uses": 0,
+      "total_score": 0,
+      "avg_score": 0
+    },
+    "controversy": {
+      "uses": 0,
+      "total_score": 0,
+      "avg_score": 0
+    }
+  },
+  "emoji_usage": {
+    "with_emoji": {
+      "uses": 0,
+      "total_score": 0
+    },
+    "without_emoji": {
+      "uses": 0,
+      "total_score": 0
+    }
+  },
+  "title_lengths": {
+    "short": {
+      "uses": 0,
+      "total_score": 0
+    },
+    "medium": {
+      "uses": 0,
+      "total_score": 0
+    },
+    "long": {
+      "uses": 0,
+      "total_score": 0
+    }
+  },
+  "best_performing": {
+    "hook_style": "shock",
+    "use_emoji": true,
+    "title_length": "medium"
+  },
+  "insights": [],
+  "last_updated": "2026-04-03T23:43:36.952257"
+}

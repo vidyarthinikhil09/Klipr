@@ -1,0 +1,44 @@
+{
+  "videos": [
+    {
+      "video_id": "tvuyiu6D0bY",
+      "title": "\ud83d\ude31 LFToxy_val's INSANE Valorant moment",
+      "creator": "LFToxy_val",
+      "model_used": "Unknown",
+      "voice_used": "Unknown",
+      "hook_style": null,
+      "has_emoji": null,
+      "title_length": 37,
+      "views": 26,
+      "watch_time_pct": 0,
+      "ctr": 0.0,
+      "subs_gained": 0,
+      "score": 1.04,
+      "logged_at": "2026-04-03T20:01:36.528835",
+      "watch_time_minutes": 0,
+      "likes": 1
+    }
+  ],
+  "model_performance": {
+    "Unknown": {
+      "total_score": 0.0,
+      "count": 1,
+      "avg_score": 0.0
+    }
+  },
+  "voice_performance": {
+    "Unknown": {
+      "total_score": 0.0,
+      "count": 1,
+      "avg_score": 0.0
+    }
+  },
+  "creator_performance": {
+    "LFToxy_val": {
+      "total_score": 0.0,
+      "count": 1,
+      "avg_score": 0.0
+    }
+  },
+  "last_updated": "2026-04-03T23:43:50.784050"
+}

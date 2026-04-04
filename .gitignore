@@ -1,0 +1,63 @@
+# AutoShorts Bot - Twitch Commentary Automation
+
+# Dependencies
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+node_modules/
+
+# Environment - NEVER COMMIT
+.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Output files (too large for git)
+output/*.mp4
+output/*.webm
+temp/
+*.mp4
+*.webm
+
+# Tokens and secrets
+data/youtube_token.pickle
+data/youtube_tokens.json
+data/analytics_token.pickle
+data/client_secrets.json
+*.pickle
+*_token.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Whisper models (large files)
+*.pt
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+frontend/dist/
+
+# Test
+.coverage
+htmlcov/
+.pytest_cache/

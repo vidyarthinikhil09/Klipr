@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neon-pink: #ff2e97;
+  --neon-blue: #00d4ff;
+  --neon-green: #00ff88;
+  --neon-purple: #a855f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+  min-height: 100vh;
+  color: white;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(20, 20, 30, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Neon glow effect */
+.neon-glow {
+  box-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 20px currentColor;
+}
+
+.neon-text {
+  text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300;
+  background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+  box-shadow: 0 4px 15px rgba(255, 46, 151, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 46, 151, 0.6);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Input styles */
+.input-genz {
+  @apply w-full px-4 py-3 rounded-xl transition-all duration-300;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.input-genz:focus {
+  outline: none;
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+}
+
+.input-genz::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Select dropdown */
+.select-genz {
+  @apply w-full px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23fff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+}
+
+.select-genz:focus {
+  outline: none;
+  border-color: var(--neon-blue);
+}
+
+/* Fix dropdown options - dark background */
+.select-genz option,
+.select-genz optgroup {
+  background: #1a1a2e;
+  color: white;
+  padding: 10px;
+}
+
+.select-genz option:hover,
+.select-genz option:checked {
+  background: #2a2a4e;
+}
+
+/* Progress bar */
+.progress-bar {
+  @apply h-2 rounded-full overflow-hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-500;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-green));
+}
+
+/* Game card */
+.game-card {
+  @apply p-4 rounded-xl cursor-pointer transition-all duration-300;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+}
+
+.game-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+}
+
+.game-card.selected {
+  border-color: var(--neon-pink);
+  background: rgba(255, 46, 151, 0.1);
+}
+
+/* Video preview */
+.video-preview {
+  @apply rounded-2xl overflow-hidden;
+  aspect-ratio: 9/16;
+  max-height: 500px;
+  background: #000;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+}
+
+/* Stats badge */
+.stats-badge {
+  @apply px-3 py-1 rounded-full text-sm font-semibold;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Loading spinner */
+.spinner {
+  @apply w-8 h-8 border-4 border-t-transparent rounded-full animate-spin;
+  border-color: var(--neon-blue);
+  border-top-color: transparent;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Toast notification */
+.toast {
+  @apply fixed bottom-4 right-4 px-6 py-4 rounded-xl z-50;
+  background: rgba(20, 20, 30, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideUp 0.3s ease-out;
+}
+
+.toast.success {
+  border-color: var(--neon-green);
+}
+
+.toast.error {
+  border-color: #ff4444;
+}

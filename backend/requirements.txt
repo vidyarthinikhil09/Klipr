@@ -1,0 +1,47 @@
+# AutoShorts Backend - Python Dependencies
+# FastAPI + Production Stack
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Settings & Environment
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# HTTP Client (async)
+httpx>=0.26.0
+
+# Database (Supabase)
+supabase>=2.3.0
+
+# Video Processing
+moviepy>=2.0.0
+faster-whisper>=1.0.0
+numpy>=1.26.0
+Pillow>=10.2.0
+
+# Animated Captions (pycaps) - CSS-styled word-by-word subtitles
+# Install from GitHub: pip install "git+https://github.com/francozanardi/pycaps.git#egg=pycaps[all]"
+# Then run: playwright install chromium
+
+# Download
+yt-dlp>=2024.1.0
+requests>=2.31.0
+
+# Text-to-Speech (optional, for future voiceover)
+edge-tts>=6.1.9
+
+# Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# Production
+gunicorn>=21.2.0
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+black>=24.1.0
+ruff>=0.1.0
