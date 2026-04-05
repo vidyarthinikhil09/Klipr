@@ -45,3 +45,6 @@ pytest>=7.4.0
 pytest-asyncio>=0.23.0
 black>=24.1.0
 ruff>=0.1.0
+
+pycaps[all] @ git+https://github.com/francozanardi/pycaps.git
+playwright
