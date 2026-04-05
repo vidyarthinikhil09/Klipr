@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     
     # CORS
     frontend_url: str = "http://localhost:5173"  # Vite default
+
+    @property
+    def frontend_urls(self):
+        return [url.strip() for url in self.frontend_url.split(",")]
     
     # Supabase
     supabase_url: str = ""
