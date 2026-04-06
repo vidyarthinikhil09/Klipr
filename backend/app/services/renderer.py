@@ -562,6 +562,130 @@ def get_memory_mb() -> Optional[int]:
                 for w in words
             ]
         }
+
+    def _seconds_to_ass_time(self, seconds: float) -> str:
+        """Format seconds to ASS time H:MM:SS.cc"""
+        if seconds is None:
+            seconds = 0.0
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = seconds % 60
+        return f"{hours}:{minutes:02d}:{secs:05.2f}"
+
+    def _write_ass_subs(self, transcript: dict, ass_path: str):
+        """Write a minimal ASS subtitle file from the transcript segments."""
+        segments = transcript.get("segments", [])
+
+        with open(ass_path, "w", encoding="utf-8") as f:
+            f.write("[Script Info]\n")
+            f.write("ScriptType: v4.00+\n")
+            f.write(f"PlayResX: {self.width}\n")
+            f.write(f"PlayResY: {self.height}\n")
+            f.write("\n")
+            f.write("[V4+ Styles]\n")
+            f.write("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
+            # Use Impact/Arial fallback and reasonable outline/shadow for visibility
+            f.write("Style: Default,Impact,58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,4,2,8,10,10,50,1\n")
+            f.write("\n")
+            f.write("[Events]\n")
+            f.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
+
+            for seg in segments:
+                start = seg.get("start", 0) + self.caption_time_offset
+                end = seg.get("end", start + 0.5)
+                text = seg.get("text", "")
+
+                # If words present, prefer combined words
+                if "words" in seg and seg["words"]:
+                    text = " ".join(w.get("word", "") for w in seg["words"]).strip()
+
+                if not text:
+                    continue
+
+                # ASS requires \N for newlines
+                text = text.replace("\n", "\\N")
+
+                start_ts = self._seconds_to_ass_time(max(0.0, start))
+                end_ts = self._seconds_to_ass_time(max(start + 0.01, end))
+
+                # Write the dialogue line
+                line = f"Dialogue: 0,{start_ts},{end_ts},Default,,0,0,0,,{text}\n"
+                f.write(line)
+
+    def render_with_ffmpeg_ass(
+        self,
+        clip_path: str,
+        transcript: dict,
+        output_path: str,
+        progress_callback: Callable[[float], None] = None
+    ) -> str:
+        """Render by creating ASS subtitles and burning them in with ffmpeg (low Python memory)."""
+        temp_dir = tempfile.mkdtemp(prefix="ffmpegsubs_")
+        portrait_video_path = os.path.join(temp_dir, "portrait_input.mp4")
+        ass_path = os.path.join(temp_dir, "subs.ass")
+
+        try:
+            # Step 1: Convert to portrait (ffmpeg scale+crop) and limit duration to 55s
+            if progress_callback:
+                progress_callback(5)
+
+            print(f"[ffmpeg] Converting to portrait: {clip_path} -> {portrait_video_path}")
+
+            scale_filter = (
+                f"scale=iw*max({self.width}/iw\,{self.height}/ih):ih*max({self.width}/iw\,{self.height}/ih),crop={self.width}:{self.height}"
+            )
+
+            cmd_convert = [
+                "ffmpeg", "-y",
+                "-i", clip_path,
+                "-vf", scale_filter,
+                "-t", "55",
+                "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-b:v", self.bitrate,
+                "-c:a", "aac",
+                portrait_video_path
+            ]
+
+            proc = subprocess.run(cmd_convert, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if proc.returncode != 0:
+                print(f"[ffmpeg] Portrait convert failed: {proc.stderr.decode('utf-8', errors='ignore')}")
+                raise RuntimeError("ffmpeg portrait conversion failed")
+
+            if progress_callback:
+                progress_callback(30)
+
+            # Step 2: Write ASS subtitles
+            self._write_ass_subs(transcript, ass_path)
+
+            if progress_callback:
+                progress_callback(50)
+
+            # Step 3: Burn subtitles with libass
+            print(f"[ffmpeg] Burning ASS subtitles: {ass_path} -> {output_path}")
+            cmd_burn = [
+                "ffmpeg", "-y",
+                "-i", portrait_video_path,
+                "-vf", f"ass={ass_path}",
+                "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-b:v", self.bitrate,
+                "-c:a", "aac",
+                output_path
+            ]
+
+            proc2 = subprocess.run(cmd_burn, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if proc2.returncode != 0:
+                print(f"[ffmpeg] Burn subtitles failed: {proc2.stderr.decode('utf-8', errors='ignore')}")
+                raise RuntimeError("ffmpeg burn subtitles failed")
+
+            if progress_callback:
+                progress_callback(100)
+
+            return output_path
+
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
     
     def render_with_moviepy(
         self,
@@ -883,8 +1007,16 @@ def get_memory_mb() -> Optional[int]:
             if PYCAPS_ERROR:
                 print(f"[Renderer] pycaps unavailable: {PYCAPS_ERROR}")
             print(f"[Renderer] Using MoviePy fallback with style: {self.caption_style}")
-        
-        # Fallback to MoviePy
+
+        # Prefer ffmpeg ASS subtitle pipeline when available (lower Python memory)
+        try:
+            if shutil.which("ffmpeg"):
+                print("[Renderer] Attempting ffmpeg ASS subtitle render (low-memory)")
+                return self.render_with_ffmpeg_ass(clip_path, transcript, output_path, progress_callback)
+        except Exception as e:
+            print(f"[Renderer] ffmpeg ASS render failed, falling back: {e}")
+
+        # Final fallback to MoviePy
         return self.render_with_moviepy(
             clip_path, transcript, output_path, progress_callback
         )
