@@ -16,6 +16,11 @@ import shutil
 from pathlib import Path
 from typing import Optional, List, Dict, Callable
 
+try:
+    import psutil
+except Exception:
+    psutil = None
+
 # Try to import pycaps, fallback to MoviePy if not available
 PYCAPS_AVAILABLE = False
 PYCAPS_ERROR = None
@@ -254,7 +259,7 @@ class Renderer:
         width: int = 1080,
         height: int = 1920,
         fps: int = 30,
-        bitrate: str = "8M",
+        bitrate: str = "4M",
         caption_style: str = "mrbeast"
     ):
         self.width = width
@@ -266,6 +271,16 @@ class Renderer:
         
         # Load MoviePy fallback style
         self.moviepy_style = MOVIEPY_STYLES.get(caption_style, MOVIEPY_STYLES["classic"])
+
+
+def get_memory_mb() -> Optional[int]:
+    """Return current process RSS in MB if psutil available."""
+    if psutil:
+        try:
+            return int(psutil.Process().memory_info().rss / (1024 * 1024))
+        except Exception:
+            return None
+    return None
     
     def resize_clip_to_fill(self, clip, target_width: int, target_height: int):
         """Resize clip to fill target dimensions (crop excess)."""
@@ -360,8 +375,16 @@ class Renderer:
             print(f"[pycaps] Converting video to portrait 9:16...")
             if progress_callback:
                 progress_callback(5)
-            
+
+            mem_before = get_memory_mb()
+            if mem_before:
+                print(f"[pycaps] Memory before portrait conversion: {mem_before} MB")
+
             self._convert_to_portrait(clip_path, portrait_video_path)
+
+            mem_after_conv = get_memory_mb()
+            if mem_after_conv:
+                print(f"[pycaps] Memory after portrait conversion: {mem_after_conv} MB")
             
             if progress_callback:
                 progress_callback(15)
@@ -392,7 +415,11 @@ class Renderer:
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 if progress_callback:
                     progress_callback(25)
-                    
+
+                mem_before_pycaps = get_memory_mb()
+                if mem_before_pycaps:
+                    print(f"[pycaps] Memory before pycaps pipeline: {mem_before_pycaps} MB")
+
                 future = executor.submit(
                     self._run_pycaps_pipeline,
                     portrait_video_path,  # Use portrait version
@@ -401,6 +428,10 @@ class Renderer:
                     output_path
                 )
                 result = future.result(timeout=300)  # 5 min timeout
+
+                mem_after_pycaps = get_memory_mb()
+                if mem_after_pycaps:
+                    print(f"[pycaps] Memory after pycaps pipeline: {mem_after_pycaps} MB")
             
             if progress_callback:
                 progress_callback(100)
@@ -429,15 +460,17 @@ class Renderer:
         # Resize and crop to fill portrait frame
         portrait_clip = self.resize_clip_to_fill(clip, self.width, self.height)
         
-        # Write to temp file
+        # Write to temp file (use low-memory ffmpeg preset)
+        print(f"[renderer] Writing portrait file to {output_path} (preset=ultrafast, threads=1)")
         portrait_clip.write_videofile(
             output_path,
             codec="libx264",
             audio_codec="aac",
             fps=self.fps,
             bitrate=self.bitrate,
-            logger=None,
-            preset="fast"
+            threads=1,
+            preset="ultrafast",
+            logger=None
         )
         
         # Cleanup
@@ -557,7 +590,11 @@ class Renderer:
         
         if progress_callback:
             progress_callback(50)
-        
+
+        mem_before_comp = get_memory_mb()
+        if mem_before_comp:
+            print(f"[moviepy] Memory before composing clips: {mem_before_comp} MB")
+
         final = CompositeVideoClip(layers, size=(self.width, self.height))
         
         if clip.audio:
@@ -565,14 +602,15 @@ class Renderer:
         
         final = final.with_duration(final_duration)
         
+        print(f"[moviepy] Writing final video to {output_path} (preset=ultrafast, threads=1)")
         final.write_videofile(
             output_path,
             fps=self.fps,
             codec="libx264",
             audio_codec="aac",
             bitrate=self.bitrate,
-            preset="medium",
-            threads=4,
+            preset="ultrafast",
+            threads=1,
             logger=None
         )
         

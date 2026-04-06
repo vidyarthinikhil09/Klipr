@@ -8,6 +8,10 @@ import asyncio
 import json
 import os
 import uuid
+try:
+    import psutil
+except Exception:
+    psutil = None
 
 from ..models.schemas import (
     VideoGenerateRequest, VideoGenerateResponse, Video, 
@@ -47,6 +51,20 @@ def update_progress(task_id: str, step: str, progress: int, message: str, status
         "message": message,
         "status": status
     }
+
+
+def get_memory_mb() -> Optional[int]:
+    """Return current process RSS in MB if psutil is available."""
+    if psutil:
+        try:
+            return int(psutil.Process().memory_info().rss / (1024 * 1024))
+        except Exception:
+            return None
+    return None
+
+
+# Simple per-process render lock to avoid concurrent heavy renders in this process
+render_lock = asyncio.Lock()
 
 
 @router.post("/generate", response_model=VideoGenerateResponse)
@@ -153,20 +171,52 @@ async def _generate_video_task(
         if description_override:
             metadata["description"] = description_override
         
-        # Step 4: Render video
-        update_progress(task_id, "render", 70, "Rendering video with captions...")
-        print(f"[{task_id}] Starting render with style: {caption_style}")
-        
+        # Step 4: Render video (acquire per-process render lock)
+        update_progress(task_id, "render", 70, "Waiting for render slot...")
+        print(f"[{task_id}] Queueing render with style: {caption_style}")
+
         output_filename = f"short_{task_id[:8]}.mp4"
         output_path = os.path.join(settings.output_dir, output_filename)
-        
+
         renderer = Renderer(caption_style=caption_style)
-        renderer.render(
-            clip_path=clip_path,
-            transcript=transcript,
-            output_path=output_path,
-            progress_callback=lambda p: update_progress(task_id, "render", 70 + int(p * 0.25), f"Rendering: {int(p)}%")
-        )
+        # Lower bitrate for Render environments to reduce peak memory
+        renderer.bitrate = getattr(renderer, "bitrate", "4M") or "4M"
+
+        try:
+            # Wait for lock to be free, polling with progress updates
+            wait_seconds = 0
+            while render_lock.locked():
+                wait_seconds += 1
+                update_progress(task_id, "render", 72, f"Renderer busy; waiting {wait_seconds}s...")
+                mem = get_memory_mb()
+                if mem:
+                    print(f"[{task_id}] Waiting for renderer - memory usage: {mem} MB")
+                await asyncio.sleep(1)
+
+            async with render_lock:
+                update_progress(task_id, "render", 75, "Rendering video with captions...")
+                mem_before = get_memory_mb()
+                if mem_before:
+                    print(f"[{task_id}] Memory before render: {mem_before} MB")
+
+                loop = asyncio.get_running_loop()
+                # Run blocking render in threadpool to avoid blocking the event loop
+                await loop.run_in_executor(
+                    None,
+                    lambda: renderer.render(
+                        clip_path=clip_path,
+                        transcript=transcript,
+                        output_path=output_path,
+                        progress_callback=lambda p: update_progress(task_id, "render", 75 + int(p * 0.20), f"Rendering: {int(p)}%")
+                    )
+                )
+
+                mem_after = get_memory_mb()
+                if mem_after:
+                    print(f"[{task_id}] Memory after render: {mem_after} MB")
+
+        except Exception as e:
+            raise
         
         print(f"[{task_id}] Render complete: {output_path}")
         
